@@ -4,29 +4,120 @@ const url = require("url");
 const qs = require("qs");
 const checkType_login = require('./views/login/js/FileController/check_Login_Filetype');
 const checkRegister = require('./views/login/js/FileController/signup');
+
 const  Connection  = require("./js_connect/configToMySQL");
 
 let connection = Connection.createConnection({multipleStatements: true});
 let home = false;
 let login = false;
 let signup = false;
+function getCate() {
+  return new Promise((resolve, reject) => {
+    let queryListCategories = `select name from categories
+    order by id;`;
+      connection.query(queryListCategories, (err, data) => {
+          if (err) {
+              reject(err);
+          } else {
+              resolve(data);
+          }
+      });
+  });
+}
+function LoginControl(req, res) {
+  let data = "";
+  req.on("data", (chunk) => (data += chunk));
+  req.on("end", () => {
+    let logindata = qs.parse(data);     
+    let stringUserName = logindata.username.toString();
+    let userquery = `select * from users where username = '${stringUserName}' and password = '${logindata.password}';`;
+
+    connection.query(userquery, (err, data) => {
+      if (err) {
+        console.log(err);
+      } else {
+        let parseData = qs.parse(data[0]);
+        // console.log(parseData);
+        if (parseData.username == null) {
+          fs.readFile(
+            "./views/login/login.html",
+            "utf-8",
+            (err, data) => {
+              if (err) {
+                console.log(err);
+              } else {
+                res.writeHead(200, { "Content-Type": "text/html" });
+                
+                let text = `<p style="text-align: center; color: white; font-size: 30px">Tài khoản không tồn tại hoặc nhập sai mật khẩu</p>`;
+                data = data.replace('{here}', text);
+                res.write(data);
+                return res.end();
+              }
+            }
+          );
+        } else {
+          let rolequery = `select ur.role_id from users u join userrole ur on u.id = ur.user_id where username = '${stringUserName}' and password = '${logindata.password}';`;
+          connection.query(rolequery, (err, data) => {
+            console.log(parseData);
+            if (err) {
+              console.log(err);
+            } else {
+          // ========================================================
+          // Set quyền cho tài khoản ...............
+              let roleData = qs.parse(data[0]);
+              console.log(roleData);
+              let role = roleData.role_id;
+              if (role === 1) {
+                console.log('Tài khoản Admin');
+
+              } else if (role === 2) {
+                console.log('Tài khoản User');
+                
+              }
+            }
+          });
+          // ========================================================
+          fs.readFile(
+            "./views/login/loginsuccess.html",
+            "utf-8",
+            (err, data) => {
+              if (err) {
+                console.log(err);
+              } else {
+                res.writeHead(200, { "Content-Type": "text/html" });
+                res.write(data);
+                return res.end();
+              }
+            }
+          );
+        }
+
+      }
+    });
+  });
+}
 
 const server = http.createServer((req, res) => {
   //Kiểm tra định dạng tệp req client của login & signup gửi lên server
   
   //filePath control
   let urlParse = url.parse(req.url);
-  console.log(req.url)
   let pathName = urlParse.pathname;
   switch (pathName) {
     case "/": {
       home = true;
       login = false;
       signup = false;
-      fs.readFile("./views/home/index.html", "utf-8", (err, data) => {
+      fs.readFile("./views/home/index.html", "utf-8", async (err, data) => {
         if (err) {
           console.log(err);
         } else {
+          let categories = await getCate();
+          let cateText = '';
+          for (let i = 0; i< categories.length;i++) {
+            cateText += `<li><a href="#">${categories[i].name}</a></li>`
+          }
+          data = data.replace("{catename}",cateText);
           res.writeHead(200, { "Content-Type": "text/html" });
           res.write(data);
           return res.end();
@@ -70,56 +161,7 @@ const server = http.createServer((req, res) => {
           }
         });
       } else {
-        let data = "";
-        req.on("data", (chunk) => (data += chunk));
-        req.on("end", () => {
-          let logindata = qs.parse(data);
-          console.log("da vao phan login");
-          console.log(logindata);
-          let stringUserName = logindata.username.toString().toLowerCase();
-          let userquery1 = `call checkLogin('${stringUserName}', '${logindata.password}', @result);`;
-          let userquery2 = `select @result;`;
-          connection.query(userquery1, userquery2, (err, data) => {
-            if (err) {
-              console.log(err);
-            } else {
-              let parseData = qs.parse(data);
-              console.log(parseData);
-              if (parseData.username == null) {
-                fs.readFile(
-                  "./views/login/login.html",
-                  "utf-8",
-                  (err, data) => {
-                    if (err) {
-                      console.log(err);
-                    } else {
-                      res.writeHead(200, { "Content-Type": "text/html" });
-                      res.write(data);
-                      res.write(
-                        "Tài khoản không tồn tại hoặc nhập sai mật khẩu"
-                      );
-                      return res.end();
-                    }
-                  }
-                );
-              } else {
-                fs.readFile(
-                  "./views/login/loginsuccess.html",
-                  "utf-8",
-                  (err, data) => {
-                    if (err) {
-                      console.log(err);
-                    } else {
-                      res.writeHead(200, { "Content-Type": "text/html" });
-                      res.write(data);
-                      return res.end();
-                    }
-                  }
-                );
-              }
-            }
-          });
-        });
+        LoginControl(req,res);
       }
       break;
     }
