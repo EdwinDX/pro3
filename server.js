@@ -7,18 +7,22 @@ const checkRegister = require('./views/login/js/FileController/signup');
 const  Connection  = require("./js_connect/configToMySQL");
 
 let connection = Connection.createConnection({multipleStatements: true});
-
+let home = false;
+let login = false;
+let signup = false;
 
 const server = http.createServer((req, res) => {
   //Kiểm tra định dạng tệp req client của login & signup gửi lên server
-  let path = "./views/home";
-  checkType_login(req,res,path);
+  
   //filePath control
   let urlParse = url.parse(req.url);
   console.log(req.url)
   let pathName = urlParse.pathname;
   switch (pathName) {
     case "/": {
+      home = true;
+      login = false;
+      signup = false;
       fs.readFile("./views/home/index.html", "utf-8", (err, data) => {
         if (err) {
           console.log(err);
@@ -30,27 +34,30 @@ const server = http.createServer((req, res) => {
       });
       break;
     }
-    case "/signup": {
-      if (req.method === "GET") {
-        fs.readFile(
-          "./views/login/SignUpAccount.html",
-          "utf-8",
-          (err, data) => {
-            if (err) {
-              console.log(err);
-            } else {
-              res.writeHead(200, { "Content-Type": "text/html" });
-              res.write(data);
-              return res.end();
-            }
-          }
-        );
-      } else {
-        checkRegister(req, res);
-      }
-      break;
-    }
+    // case "/signup": {
+    //   if (req.method === "GET") {
+    //     fs.readFile(
+    //       "./views/login/SignUpAccount.html",
+    //       "utf-8",
+    //       (err, data) => {
+    //         if (err) {
+    //           console.log(err);
+    //         } else {
+    //           res.writeHead(200, { "Content-Type": "text/html" });
+    //           res.write(data);
+    //           return res.end();
+    //         }
+    //       }
+    //     );
+    //   } else {
+    //     checkRegister(req, res);
+    //   }
+    //   break;
+    // }
     case "/login": {
+      home = false;
+      login = true;
+      signup = false;
       //Data control login site
       if (req.method === "GET") {
         fs.readFile("./views/login/login.html", "utf-8", (err, data) => {
@@ -116,6 +123,7 @@ const server = http.createServer((req, res) => {
       }
       break;
     }
+
     // default: {
     //   fs.readFile("./views/404-error.html", "utf-8", (err, data) => {
     //     if (err) {
@@ -128,7 +136,19 @@ const server = http.createServer((req, res) => {
     //   });
     // }
   }
-});
+  if (home === true) {
+    let path = "./views/home";
+    checkType_login(req,res,path);
+  }
+  if (login === true) {
+    let path = "./views/login";
+    checkType_login(req,res,path);
+  }
+
+}
+
+
+);
 
 server.listen(8080, () => {
   console.log("Server is running on http://localhost:8080");
