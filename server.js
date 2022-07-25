@@ -123,7 +123,29 @@ const server = http.createServer((req, res) => {
       }
       break;
     }
-
+    case "/signup": {
+      home = false;
+      login = false;
+      signup = true;
+      if (req.method === "GET") {
+        fs.readFile(
+          "./views/login/SignUpAccount.html",
+          "utf-8",
+          (err, data) => {
+            if (err) {
+              console.log(err);
+            } else {
+              res.writeHead(200, { "Content-Type": "text/html" });
+              res.write(data);
+              return res.end();
+            }
+          }
+        );
+      } else {
+        checkRegister.SignUpAccount(req, res);
+      }
+      break;
+    }
     // default: {
     //   fs.readFile("./views/404-error.html", "utf-8", (err, data) => {
     //     if (err) {
@@ -141,6 +163,10 @@ const server = http.createServer((req, res) => {
     checkType_login(req,res,path);
   }
   if (login === true) {
+    let path = "./views/login";
+    checkType_login(req,res,path);
+  }
+  if (signup === true) {
     let path = "./views/login";
     checkType_login(req,res,path);
   }
