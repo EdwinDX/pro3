@@ -125,9 +125,10 @@ const server = http.createServer((req, res) => {
           let categories = await getCate();
           let cateText = "";
           for (let i = 0; i < categories.length; i++) {
-            cateText += `<li><a href="#">${categories[i].name}</a></li>`;
+            
+            cateText += `<li data-filter=".oranges">${categories[i].name}</li>`;
           }
-          data = data.replace("{catename}", cateText);
+          data = data.replace("{catelogies}", cateText);
           res.writeHead(200, { "Content-Type": "text/html" });
           res.write(data);
           return res.end();
